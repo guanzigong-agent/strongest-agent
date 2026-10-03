@@ -3,11 +3,12 @@ import {createServer} from 'node:http';
 import {readFile,mkdir,writeFile} from 'node:fs/promises';
 import path from 'node:path';
 import {buildSite,publicFiles} from './build-site.mjs';
+import {createScoreServer} from '../server/local.mjs';
 const require=createRequire(import.meta.url);
 const {chromium}=require(process.env.PLAYWRIGHT_MODULE??'playwright');
 const output=path.resolve('output/playwright/release');
 await mkdir(output,{recursive:true});
-let server,siteUrl=process.env.SITE_URL;
+let server,apiServer,siteUrl=process.env.SITE_URL;
 if(!siteUrl){
  const destination=path.join(output,'site');await buildSite(destination);
  const allowed=new Set([...publicFiles,'.nojekyll']);
@@ -25,6 +26,10 @@ if(!siteUrl){
 }
 const browser=await chromium.launch({headless:true,...(process.env.TEST_BROWSER?{executablePath:process.env.TEST_BROWSER}:{})});
 const page=await browser.newPage({viewport:{width:375,height:812}}),errors=[],failed=[],checks=[];
+if(server){
+ apiServer=await createScoreServer(':memory:',[new URL(siteUrl).origin]);await new Promise(r=>apiServer.listen(0,'127.0.0.1',r));
+ await page.route('**/api-config.mjs*',route=>route.fulfill({contentType:'text/javascript',body:`export const SCORE_API='http://127.0.0.1:${apiServer.address().port}/api';`}));
+}
 page.on('pageerror',e=>errors.push(e.message));
 page.on('response',response=>{if(response.status()>=400)failed.push(`${response.status()} ${response.url()}`);});
 page.on('requestfailed',request=>failed.push(request.url()));
@@ -48,8 +53,9 @@ try{
  check(await page.locator('[data-sell]').count()===1,'移动后持仓可卖出');
  await page.locator('[data-sell]').click();check(await page.locator('#capacity').innerText()==='0 / 15','在线卖出正常');
  await page.locator('#open-leaderboard').click();const dialog=page.locator('#leaderboard-dialog');await dialog.waitFor({state:'visible'});
- check((await dialog.locator('[data-board-player="me"]').innerText()).includes('发布检查'),'排行榜显示当前局');
- check((await dialog.innerText()).includes('未连接线上排行榜'),'保留排行榜演示说明');
+ await dialog.locator('[data-board-me]').waitFor();
+ check((await dialog.locator('[data-board-me]').innerText()).includes('发布检查'),'真实排行榜显示当前局');
+ check((await dialog.innerText()).includes('结算后保留成绩'),'结算保留说明正确');
  check(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'375px无横向溢出');
  await page.screenshot({path:path.join(output,'mobile.png'),fullPage:true});
  await page.setViewportSize({width:1280,height:900});check(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'1280px无横向溢出');
@@ -57,4 +63,13 @@ try{
  check(errors.length===0,'页面无脚本异常');check(failed.length===0,'页面资源全部加载成功');
  const report={ok:true,url:siteUrl,revision:await page.locator('meta[name="game-build"]').getAttribute('content'),checks:checks.length,labels:checks,errors,failed};
  await writeFile(path.join(output,process.env.SITE_URL?'online-report.json':'local-report.json'),JSON.stringify(report,null,2));console.log(JSON.stringify(report));
-}finally{await browser.close();if(server)await new Promise(resolve=>server.close(resolve));}
+}finally{
+ if(process.env.SITE_URL){
+  try{await page.evaluate(async()=>{
+   const {SCORE_API}=await import(new URL('./api-config.mjs',location.href));
+   const state=JSON.parse(localStorage.getItem('nba-agent-runs-v1')??'{"runs":[]}');
+   for(const run of state.runs)await fetch(SCORE_API+'/runs/'+run.id,{method:'DELETE',headers:{'Content-Type':'application/json',Authorization:'Bearer '+run.key,'X-Rules-Version':run.rulesVersion,'X-Roster-Version':run.rosterVersion},body:'{}'});
+  });}catch{}
+ }
+ await browser.close();if(server)await new Promise(resolve=>server.close(resolve));if(apiServer)await new Promise(resolve=>apiServer.close(resolve));
+}

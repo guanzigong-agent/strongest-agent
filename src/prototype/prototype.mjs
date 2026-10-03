@@ -1,91 +1,59 @@
-// M2 interface demonstration. Deliberately separate from the production engine
-// and saves; the seeded fixture is a visual probe, not an approved price model.
 import {createLeaderboard} from './leaderboard.mjs';
+import {createScoreClient} from './score-client.mjs';
+import {SCORE_API} from './api-config.mjs';
+import {CAPACITY,DIFFICULTIES,RULES_VERSION,bucket,createRun,replayRun,quote as gameQuote,referenceAssets} from './rules.mjs';
 const root = document.querySelector('#app');
-const CAPACITY = 15;
-const DIFFICULTIES = [
-  {id: 'easy', name: '轻松', cash: 30e6, label: '3000万美元', note: '更充足的周转资金'},
-  {id: 'standard', name: '标准', cash: 10e6, label: '1000万美元', note: '在资金与机会间取舍'},
-  {id: 'challenge', name: '挑战', cash: 5e6, label: '500万美元', note: '从小额交易起步'},
-];
 let selectedDifficulty = 'standard', selectedTeam = null, nickname = '';
 let data, game = null, tab = 'market', search = '', filter = 'ALL', timer;
-const leaderboard = createLeaderboard(() => !game ? null : ({
-  name: game.nickname, difficultyId: game.difficultyId, day: game.day,
-  assets: totalReference(), ended: game.ended,
-}));
+const scores = createScoreClient(SCORE_API,{onChange:()=>{
+  if(game?.ended)root.innerHTML=result();
+  const status=document.querySelector('#game-sync');if(status)status.innerHTML=syncStatus(false);
+  leaderboard.update();
+}});
+const leaderboard = createLeaderboard(() => {
+  const run=scores.current();return !run?null:{id:run.id,difficultyId:run.config.difficultyId};
+},SCORE_API,()=>({rulesVersion:RULES_VERSION,rosterVersion:data.databaseSha256}));
 const esc = x => String(x ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
 const money = n => n == null ? '待核实' : n >= 1e6 ? '$' + (n / 1e6).toFixed(2) + 'M' : '$' + (n / 1e3).toFixed(0) + 'K';
 const signed = n => (n < 0 ? '−' : '+') + money(Math.abs(n));
 const percent = n => (n < 0 ? '−' : '+') + Math.abs(n * 100).toFixed(1) + '%';
 const tone = n => n < 0 ? 'down' : 'up';
 const initials = name => name.split(' ').map(x => x[0]).slice(0, 2).join('');
-const bucket = p => p.position.includes('C') ? 'C' : p.position.includes('G') ? 'G' : 'F';
 const byId = id => data.players.find(p => p.id === id);
 const teamById = id => data.teams.find(t => t.id === id);
-function random(key) {
-  let n = 2166136261;
-  for (const c of key) n = Math.imul(n ^ c.charCodeAt(0), 16777619);
-  n ^= n >>> 16; n = Math.imul(n, 0x7feb352d); n ^= n >>> 15;
-  return (n >>> 0) / 4294967296;
-}
 function notify(message) {
   const element = document.querySelector('#toast');
   element.textContent = message; element.classList.add('show');
   clearTimeout(timer); timer = setTimeout(() => element.classList.remove('show'), 3800);
 }
-function createDemo(teamId, difficultyId) {
-  const difficulty = DIFFICULTIES.find(d => d.id === difficultyId) ?? DIFFICULTIES[1];
-  game = {day: 1, teamId, difficultyId: difficulty.id, initialCash: difficulty.cash,
-    cash: difficulty.cash, nickname: nickname.trim() || '我', holdings: [], realized: 0, transactions: 0,
-    owners: Object.fromEntries(data.players.map(p => [p.id, p.teamId])),
-    daily: {}, visits: {}, ended: false, arrival: 'start'};
-  newDay(); visit(); tab = 'market'; search = ''; filter = 'ALL'; render();
+function createGame(teamId,difficultyId){
+  const config={teamId,difficultyId,nickname:nickname.trim()};
+  game=createRun(data,config);scores.start(config,data.databaseSha256);
+  tab='market';search='';filter='ALL';render();
 }
-function newDay() {
-  const factors = {}, previous = game.daily[game.day - 1];
-  for (const p of data.players) {
-    if (!previous) {
-      factors[p.id] = .65 + random('start:' + p.id) * .8;
-    } else {
-      const tier = random(`tier:${p.id}:${game.day}`);
-      const magnitude = random(`size:${p.id}:${game.day}`);
-      const change = tier < .72 ? .05 + magnitude * .1 : tier < .95 ? .15 + magnitude * .1 : .25 + magnitude * .15;
-      const old = previous.factors[p.id];
-      const downChance = old > 1.9 ? .6 : old < .5 ? .4 : .5;
-      const sign = random(`direction:${p.id}:${game.day}`) < downChance ? -1 : 1;
-      factors[p.id] = clamp(old * (1 + sign * change), .3, 2.5);
-    }
-  }
-  const counts = Object.fromEntries(data.teams.map(t => [t.id, {G: 0, F: 0, C: 0}]));
-  for (const p of data.players) if (counts[game.owners[p.id]]) counts[game.owners[p.id]][bucket(p)]++;
-  const average = Object.fromEntries(['G', 'F', 'C'].map(pos => [pos, data.teams.reduce((n,t) => n + counts[t.id][pos], 0) / data.teams.length]));
-  const demand = Object.fromEntries(data.teams.map(t => [t.id, Object.fromEntries(['G', 'F', 'C'].map(pos => [pos, clamp((average[pos] - counts[t.id][pos]) * .03, -.15, .15)]))]));
-  game.daily[game.day] = {factors, demand};
+function commit(event){
+  const run=scores.current(),next=replayRun(data,run.config,[...run.events,event]);
+  scores.append(event);game=next;
 }
-function quote(p, teamId = game.teamId, day = game.day) {
-  if (!p.salaryUsd) return null;
-  const daily = game.daily[day];
-  return Math.round(p.salaryUsd * clamp(daily.factors[p.id] * (1 + daily.demand[teamId][bucket(p)]), .3, 2.5));
-}
-function visit() {
-  game.visits[game.teamId] = {day: game.day, prices: Object.fromEntries(data.players.map(p => [p.id, quote(p)])),
-    local: data.players.filter(p => game.owners[p.id] === game.teamId).map(p => p.id)};
+function quote(p,teamId=game.teamId,day=game.day){return gameQuote(data,game,p,teamId,day);}
+function syncStatus(resultPage){
+ const status=scores.status(),difficulty=DIFFICULTIES.find(d=>d.id===game.difficultyId);
+ const state=status.state;
+ const title=state==='saved'?(resultPage?'成绩已保存':'资产已同步'):state==='error'?(resultPage?'成绩未入榜，请重试':'同步失败，进度已保存在本机'):state==='syncing'?'正在同步…':'等待同步';
+ const note=state==='saved'?(resultPage?`已进入${difficulty.name}难度榜，刷新后仍可查看。`:'买卖与移动后自动更新排行榜。'):state==='error'?`${status.message}。本局记录仍在本机，恢复连接后可以补交。`:'同步完成后才会显示在共享排行榜。';
+ return `<div class="score-submit ${state==='saved'?'success':state==='error'?'error':''}" data-score-status="${state}"><strong>${title}</strong><p>${esc(note)}</p>${state==='error'?'<button data-score-retry>重试提交</button>':''}</div>`;
 }
 function totalLocal() {
   return game.cash + game.holdings.reduce((sum, h) => sum + quote(byId(h.id)), 0);
 }
-function totalReference() {
-  return game.cash + game.holdings.reduce((sum,h) => sum + Math.round(byId(h.id).salaryUsd * game.daily[game.day].factors[h.id]), 0);
-}
+function totalReference(){return referenceAssets(data,game);}
 function playerHeader(p) {
   return `<div class="player-head"><span class="avatar">${esc(initials(p.name))}</span><div><h3>${esc(p.name)}</h3><p>${esc(p.position)} · ${esc(teamById(p.teamId).abbr)} 初始归属</p></div></div>`;
 }
 function setup() {
   const difficulty = DIFFICULTIES.find(d => d.id === selectedDifficulty);
   selectedTeam ??= data.teams.find(t => t.abbr === 'ATL').id;
-  root.innerHTML = `<section class="setup"><div><span class="eyebrow">BUY LOW. FIND YOUR NEXT DEAL.</span><h1>下一站，<br>你的球员值多少？</h1><p class="lead">选好你的启动资金，走访30支球队。买入、持有、转卖，在每天变化的报价里寻找机会。</p><div class="rule-pills"><span>最多持有 ${CAPACITY} 人</span><span>移动耗时 1 天</span><span>第 30 天结算</span></div></div><div class="setup-card"><span class="eyebrow">CURRENT ROSTER / 2026–27</span><h2>选好起点，开始经营。</h2><div class="field-label" id="difficulty-label">游戏难度 · 初始资金</div><div class="difficulty-options" role="group" aria-labelledby="difficulty-label">${DIFFICULTIES.map(d => `<button type="button" data-difficulty="${d.id}" aria-pressed="${d.id === selectedDifficulty}" class="difficulty-option ${d.id === selectedDifficulty ? 'selected' : ''}"><span>${d.name}</span><strong>${d.label.replace('万美元','万')}</strong><small>美元</small></button>`).join('')}</div><p class="difficulty-note">${difficulty.note} · 三档均有${CAPACITY}个背包栏，行情规则一致。</p><label for="nickname">玩家昵称（可选）</label><input id="nickname" class="nickname-input" maxlength="12" placeholder="填写你的排行榜昵称" value="${esc(nickname)}"><p class="nickname-note">当前原型仅在本页展示，未上传昵称或成绩。</p><label for="start-team">开局球队</label><select id="start-team">${data.teams.map(t => `<option value="${esc(t.id)}" ${t.id === selectedTeam ? 'selected' : ''}>${esc(t.name)} · ${esc(t.abbr)}</option>`).join('')}</select><div class="sample-line"><span>初始现金</span><strong id="initial-cash">$${difficulty.cash.toLocaleString('en-US')}</strong><span>模拟报价区间</span><strong>工资基准的 30%～250%</strong><small>工资是起点，市场报价每天变化。</small></div><button class="primary wide" data-start>${difficulty.name}难度 · 开始试玩 →</button><p class="small-note">30队 · 620名球员 · 616名可确定本季基本工资。戴维斯已在奇才名单。本轮评审行情变化与交易反馈，演示报价不代表真实估值。</p></div></section>`;
+  root.innerHTML = `<section class="setup"><div><span class="eyebrow">BUY LOW. FIND YOUR NEXT DEAL.</span><h1>下一站，<br>你的球员值多少？</h1><p class="lead">选好你的启动资金，走访30支球队。买入、持有、转卖，在每天变化的报价里寻找机会。</p><div class="rule-pills"><span>最多持有 ${CAPACITY} 人</span><span>移动耗时 1 天</span><span>第 30 天结算</span></div></div><div class="setup-card"><span class="eyebrow">CURRENT ROSTER / 2026–27</span><h2>选好起点，开始经营。</h2><div class="field-label" id="difficulty-label">游戏难度 · 初始资金</div><div class="difficulty-options" role="group" aria-labelledby="difficulty-label">${DIFFICULTIES.map(d => `<button type="button" data-difficulty="${d.id}" aria-pressed="${d.id === selectedDifficulty}" class="difficulty-option ${d.id === selectedDifficulty ? 'selected' : ''}"><span>${d.name}</span><strong>${d.label.replace('万美元','万')}</strong><small>美元</small></button>`).join('')}</div><p class="difficulty-note">${difficulty.note} · 三档均有${CAPACITY}个背包栏，行情规则一致。</p><label for="nickname">你的游戏名字（必填）</label><input id="nickname" class="nickname-input" maxlength="12" required aria-describedby="nickname-error" placeholder="起个1～12字的游戏名字" value="${esc(nickname)}"><p id="nickname-error" class="score-name-error" role="alert" hidden></p><p class="nickname-note">名字会随本局成绩显示在公开排行榜中。</p>${scores.issue()?`<div class="warning" role="alert">${esc(scores.issue())}<button data-recover-save>保留备份并重新开局</button></div>`:""}<label for="start-team">开局球队</label><select id="start-team">${data.teams.map(t => `<option value="${esc(t.id)}" ${t.id === selectedTeam ? 'selected' : ''}>${esc(t.name)} · ${esc(t.abbr)}</option>`).join('')}</select><div class="sample-line"><span>初始现金</span><strong id="initial-cash">$${difficulty.cash.toLocaleString('en-US')}</strong><span>模拟报价区间</span><strong>工资基准的 30%～250%</strong><small>工资是起点，市场报价每天变化。</small></div><button class="primary wide" data-start>${difficulty.name}难度 · 开始试玩 →</button><p class="small-note">30队 · 620名球员 · 616名可确定本季基本工资。戴维斯已在奇才名单。行情为游戏模拟，报价不代表真实估值。</p></div></section>`;
 }
 function header() {
   const team = teamById(game.teamId), profit = totalLocal() - game.initialCash;
@@ -127,54 +95,60 @@ function result() {
   const inventory = game.holdings.reduce((n, h) => n + Math.round(byId(h.id).salaryUsd * game.daily[game.day].factors[h.id]), 0);
   const assets = game.cash + inventory, profit = assets - game.initialCash;
   const difficulty = DIFFICULTIES.find(d => d.id === game.difficultyId);
-  return `<section class="result"><span class="eyebrow">DEMO ROUND COMPLETE</span><h1>这一局，你的眼光值多少？</h1><p>${difficulty.name}难度 · 初始${money(game.initialCash)} · 第${game.day}天结束</p><div class="big">${money(assets)}</div><strong id="result-profit" class="${tone(profit)}">总收益 ${signed(profit)} · ${percent(profit / game.initialCash)}</strong><div class="stats"><div class="stat"><label>剩余现金</label><strong>${money(game.cash)}</strong></div><div class="stat"><label>持仓参考价值</label><strong>${money(inventory)}</strong></div><div class="stat"><label>已实现盈亏</label><strong class="${tone(game.realized)}">${signed(game.realized)}</strong></div><div class="stat"><label>交易次数</label><strong>${game.transactions}</strong></div></div><p>持仓按当日统一模拟行情计价，结算不含球队需求溢价。<br>演示参数待调整，正式规则与存档尚未接入。</p><button class="result-board-button leaderboard-link" data-open-board>查看进行中排行榜 →</button><p class="result-board-note">本局结束后退出进行中榜单，结算成绩不混入该榜。</p><button class="primary" data-restart>重新试玩 →</button></section>`;
+  return `<section class="result"><span class="eyebrow">ROUND COMPLETE</span><h1>这一局，你的眼光值多少？</h1><p>${esc(game.nickname)} · ${difficulty.name}难度 · 初始${money(game.initialCash)} · 第${game.day}天结束</p><div class="big">${money(assets)}</div><strong id="result-profit" class="${tone(profit)}">总收益 ${signed(profit)} · ${percent(profit / game.initialCash)}</strong><div class="stats"><div class="stat"><label>剩余现金</label><strong>${money(game.cash)}</strong></div><div class="stat"><label>持仓参考价值</label><strong>${money(inventory)}</strong></div><div class="stat"><label>已实现盈亏</label><strong class="${tone(game.realized)}">${signed(game.realized)}</strong></div><div class="stat"><label>交易次数</label><strong>${game.transactions}</strong></div></div><p>持仓按当日统一模拟行情计价，结算不含球队需求溢价。<br>每局结算记录单独保留，轻松、标准、挑战分别排行。</p>${syncStatus(true)}<button class="result-board-button leaderboard-link" data-open-board>查看本局排行榜 →</button><p class="result-board-note">成绩只进入本局所选难度，结束后继续保留。</p><button class="primary" data-restart>重新试玩 →</button></section>`;
 }
 function render() {
   leaderboard.update();
   if (!game) return setup();
   if (game.ended) {root.innerHTML = result(); return;}
-  root.innerHTML = header() + (tab === 'market' ? market() : tab === 'warehouse' ? warehouse() : map()) + `<div class="endbar"><p>每日模拟行情 · 报价范围为本季基本工资的30%～250%<br>本轮仅评审界面与交易反馈</p><div><button data-restart>重新试玩</button> <button data-finish>${game.day === 30 ? '结算本局' : '提前结算'}</button></div></div>`;
+  root.innerHTML = header() + `<div id="game-sync">${syncStatus(false)}</div>` + (tab === 'market' ? market() : tab === 'warehouse' ? warehouse() : map()) + `<div class="endbar"><p>每日模拟行情 · 报价范围为本季基本工资的30%～250%<br>进度自动保存在本机，成绩同步到所选难度榜</p><div><button data-restart>重新试玩</button> <button data-finish>${game.day === 30 ? '结算本局' : '提前结算'}</button></div></div>`;
 }
 root.addEventListener('click', event => {
+  try {
   const button = event.target.closest('button');
   if (!button || button.disabled) return;
+  if(button.hasAttribute('data-recover-save')) {if(confirm('保留异常存档备份并重新开局？')){scores.recover();game=null;setup();} return;}
+  if(button.hasAttribute('data-score-retry')) {scores.flush(); return;}
   if (button.hasAttribute('data-open-board')) {leaderboard.open(); return;}
   if (button.dataset.difficulty) {
     selectedTeam = document.querySelector('#start-team').value;
     selectedDifficulty = button.dataset.difficulty; setup();
     document.querySelector(`[data-difficulty="${selectedDifficulty}"]`).focus(); return;
   }
-  if (button.hasAttribute('data-start')) return createDemo(document.querySelector('#start-team').value, selectedDifficulty);
+  if (button.hasAttribute('data-start')) {
+    try {createGame(document.querySelector('#start-team').value,selectedDifficulty);}
+    catch(error){game=null;const alert=document.querySelector('#nickname-error');alert.hidden=false;alert.textContent=error.message;document.querySelector('#nickname').focus();}
+    return;
+  }
   if (button.hasAttribute('data-restart')) {
-    if (!game?.ended && !confirm('重新试玩会清除本页演示进度，继续吗？')) return;
-    game = null; leaderboard.update(); return setup();
+    if (!game?.ended && !confirm('重新开局？已提交成绩会保留，未提交的记录将在连接恢复后补交。')) return;
+    scores.clearCurrent(); game = null; leaderboard.update(); return setup();
   }
   if (button.dataset.tab) {tab = button.dataset.tab; search = ''; filter = 'ALL'; render(); return;}
   if (button.dataset.filter) {filter = button.dataset.filter; render(); return;}
   if (button.dataset.buy) {
     const p = byId(button.dataset.buy), cost = quote(p);
     if (game.owners[p.id] !== game.teamId || cost == null || cost > game.cash || game.holdings.length >= CAPACITY) return;
-    game.cash -= cost; game.owners[p.id] = 'warehouse';
-    game.holdings.push({id: p.id, cost, day: game.day, teamId: game.teamId}); game.transactions++;
+    commit({type:'buy',id:p.id});
     render(); notify(`已买入 ${p.name} · ${money(cost)}，球员进入仓库`); return;
   }
   if (button.dataset.sell) {
     const h = game.holdings.find(x => x.id === button.dataset.sell); if (!h) return;
     const price = quote(byId(h.id)), profit = price - h.cost;
-    game.cash += price; game.realized += profit; game.owners[h.id] = game.teamId;
-    game.holdings = game.holdings.filter(x => x.id !== h.id); game.transactions++;
+    commit({type:'sell',id:h.id});
     render(); notify(`卖出到账 ${money(price)} · 本笔盈亏 ${signed(profit)}`); return;
   }
   if (button.dataset.move) {
     if (button.dataset.move === game.teamId || game.day >= 30) return;
-    game.day++; game.teamId = button.dataset.move; newDay(); visit(); game.arrival = 'move';
+    commit({type:'move',teamId:button.dataset.move});
     tab = game.holdings.length ? 'warehouse' : 'market'; search = ''; filter = 'ALL';
     render(); window.scrollTo({top: 0, behavior: 'smooth'}); notify(`第${game.day}天 · 已到达${teamById(game.teamId).name}，当地报价已刷新`); return;
   }
   if (button.hasAttribute('data-finish')) {
-    if (!confirm('按当前模拟行情结算并结束这局演示？')) return;
-    game.ended = true; render();
+    if (!confirm('按当前模拟行情结算本局并保存成绩？')) return;
+    commit({type:'finish'}); render();
   }
+  } catch(error){notify('本次操作未执行：'+error.message);}
 });
 root.addEventListener('input', event => {
   if (event.target.id === 'nickname') {nickname = event.target.value; return;}
@@ -194,7 +168,15 @@ try {
   if (!response.ok) throw new Error(`名单读取失败：HTTP ${response.status}`);
   data = await response.json();
   data.teams.sort((a, b) => a.englishName.localeCompare(b.englishName, 'en'));
-  setup();
+  await scores.ready;
+  const saved=scores.current();
+  if(saved&&saved.rulesVersion===RULES_VERSION&&saved.rosterVersion===data.databaseSha256){
+    try{game=replayRun(data,saved.config,saved.events);nickname=game.nickname;selectedDifficulty=game.difficultyId;selectedTeam=saved.config.teamId;render();}
+    catch{game=null;scores.quarantine();setup();}
+  }else setup();
+  scores.flush();
+  window.addEventListener('online',()=>scores.flush());
+  setInterval(()=>{if(!document.hidden)scores.flush();},20000);
 } catch (error) {
-  root.innerHTML = `<div class="empty"><h3>原型暂未打开</h3><p>${esc(error.message)}</p></div>`;
+  root.innerHTML = `<div class="empty"><h3>游戏暂未打开</h3><p>${esc(error.message)}</p></div>`;
 }

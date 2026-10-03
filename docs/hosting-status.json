@@ -1,0 +1,13 @@
+{
+  "provider": "Sites",
+  "frontend": "GitHub Pages",
+  "projectId": "appgprj_6ac0ebef744c81919ada3ad776478bb6",
+  "apiUrl": "https://strongest-agent-rankings.guanzigong.chatgpt.site/api",
+  "serviceSourceCommit": "c29a64db25937a3518d40f6813d58cb7563258a8",
+  "savedVersionId": "appgprj_6ac0ebef744c81919ada3ad776478bb6~appgver_5313900b976c8191881911e845f66588",
+  "deploymentId": "appgdep_6ac0ee575a288191854565aeebba6224",
+  "deploymentStatus": "succeeded",
+  "rulesVersion": "market-20261003-v1",
+  "rosterVersion": "958d5e4a0121811e65c2a2ba2acc6799998525067107818aede3fa5314d28b9b",
+  "accessMode": "public"
+}

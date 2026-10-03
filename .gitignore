@@ -10,3 +10,8 @@ docs/*-checkpoint.json
 docs/execution-ledger.md
 __pycache__/
 *.pyc
+
+output/ranking/
+
+services/leaderboard/
+output/sites/

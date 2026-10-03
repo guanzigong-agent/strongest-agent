@@ -25,7 +25,7 @@ try {
     await page.locator('#start-team').selectOption('27');
     await page.locator(`[data-difficulty="${id}"]`).click();
     check(await page.locator('#start-team').inputValue() === '27', `${id}切换难度保留球队选择`);
-    await page.locator('[data-start]').click();
+    await page.locator('#nickname').fill('玩法检查'); await page.locator('[data-start]').click();
     check(await page.locator('#cash').innerText() === cash, `${id}初始资金正确`);
     check(await page.locator('#capacity').innerText() === '0 / 15', `${id}背包容量15人`);
     check((await page.locator('.stats .stat').last().innerText()).includes('+$0K'), `${id}开局总盈亏为零`);
@@ -35,7 +35,7 @@ try {
   }
   await page.locator('[data-difficulty="easy"]').click();
   await page.locator('#start-team').selectOption('24');
-  await page.locator('[data-start]').click();
+  await page.locator('#nickname').fill('玩法检查'); await page.locator('[data-start]').click();
   for (let i = 0; i < 15; i++) {
     if (await page.locator('[data-buy]:not([disabled])').count() === 0) {
       await page.locator('nav [data-tab="map"]').click();
@@ -57,7 +57,7 @@ try {
   await page.locator('#start-team').selectOption('24');
   await page.screenshot({path: `${output}/mobile-start.png`, fullPage: true});
   await noOverflow('375px开局无横向溢出');
-  await page.locator('[data-start]').click();
+  await page.locator('#nickname').fill('玩法检查'); await page.locator('[data-start]').click();
   await page.screenshot({path: `${output}/mobile-market.png`, fullPage: true});
   await noOverflow('375px市场无横向溢出');
   const buy = page.locator('[data-buy]:not([disabled])').first();
@@ -105,7 +105,7 @@ try {
   check(await page.locator('[data-move]:not([disabled])').count() === 0, '第30天停止移动');
   await page.locator('[data-finish]').click();
   await page.locator('.result').waitFor();
-  check(await page.evaluate(() => Object.keys(localStorage).filter(k => k.startsWith('strongest-agent')).length) === 0, '原型未写入正式存档');
+  check(await page.evaluate(() => JSON.parse(localStorage.getItem('nba-agent-runs-v1')).runs.some(r=>r.events.at(-1)?.type==='finish')), '当前结算操作已写入本机恢复存档');
   check(errors.length === 0, '浏览器无脚本异常');
   const report = {checks, quoteExample: {purchasePrice, day1Sell, day2Sell}, errors};
   await writeFile(`${output}/report.json`, JSON.stringify(report, null, 2) + '\n');

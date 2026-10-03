@@ -11,6 +11,10 @@ export const publicFiles=[
  'src/prototype/roster.json',
  'src/prototype/leaderboard.css',
  'src/prototype/leaderboard.mjs',
+ 'src/prototype/rules.mjs',
+ 'src/prototype/score-client.mjs',
+ 'src/prototype/api-config.mjs',
+ 'src/prototype/score-preview.css',
  'docs/public-data-sources.md',
 ];
 export async function buildSite(destination=path.join(root,'output/site')){
