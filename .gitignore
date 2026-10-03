@@ -1,0 +1,10 @@
+node_modules/
+.superpowers/
+.cache/
+.env*
+*.log
+local-save*.json
+output/playwright/
+docs/execution-ledger.md
+__pycache__/
+*.pyc
