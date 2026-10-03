@@ -35,6 +35,7 @@ try{
  await page.locator('[data-start]').waitFor();
  check(page.url().startsWith(new URL('src/prototype/index.html',siteUrl).href),'根入口在仓库子路径正确进入当前版本');
  check((await page.title()).includes('最强nba人贩子'),'在线标题正确');
+ check(await page.locator('#start-team').inputValue()==='1','开局默认亚特兰大老鹰');
  const rosterResponse=await page.request.get(new URL('src/prototype/roster.json',siteUrl).href);
  check(rosterResponse.ok(),'名单资源HTTP成功');
  const roster=await rosterResponse.json();check(roster.teams.length===30&&roster.players.length===620,'公开名单30队620人');
@@ -54,6 +55,6 @@ try{
  await page.setViewportSize({width:1280,height:900});check(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'1280px无横向溢出');
  await page.screenshot({path:path.join(output,'desktop.png'),fullPage:true});
  check(errors.length===0,'页面无脚本异常');check(failed.length===0,'页面资源全部加载成功');
- const report={ok:true,url:siteUrl,checks:checks.length,labels:checks,errors,failed};
+ const report={ok:true,url:siteUrl,revision:await page.locator('meta[name="game-build"]').getAttribute('content'),checks:checks.length,labels:checks,errors,failed};
  await writeFile(path.join(output,process.env.SITE_URL?'online-report.json':'local-report.json'),JSON.stringify(report,null,2));console.log(JSON.stringify(report));
 }finally{await browser.close();if(server)await new Promise(resolve=>server.close(resolve));}

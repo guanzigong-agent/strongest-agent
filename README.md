@@ -36,9 +36,11 @@ npm run validate
 node scripts/build-site.mjs
 ```
 
-前两项验证保留的旧版引擎与历史数据。当前前端的浏览器检查为 `scripts/prototype-smoke.mjs`、`scripts/leaderboard-smoke.mjs`；发布包和仓库子路径检查为 `scripts/site-smoke.mjs`。浏览器脚本通过 `PLAYWRIGHT_MODULE` 和 `TEST_BROWSER` 指定本机Playwright及浏览器路径，不使用桌面控制。`SITE_URL` 可用于检查实际部署网址。
+前两项验证保留的旧版引擎与历史数据。当前前端的浏览器检查为 `scripts/prototype-smoke.mjs`、`scripts/leaderboard-smoke.mjs`；发布包和仓库子路径检查为 `scripts/site-smoke.mjs`，旧缓存跨版本检查为 `scripts/cache-smoke.mjs`。浏览器脚本通过 `PLAYWRIGHT_MODULE` 和 `TEST_BROWSER` 指定本机Playwright及浏览器路径，不使用桌面控制。`SITE_URL` 可用于检查实际部署网址。
 
 GitHub Actions在推送到 `develop` 或 `main` 时构建并发布Pages。构建仅复制明确列出的公开资源到 `output/site/`；数据库原文件、采集缓存、浏览器截图、任务上下文和凭据不进入Pages包。源码仓库公开，生成文件及本机执行记录由 `.gitignore` 排除。
+
+构建按内容生成版本标识，入口及资源请求带版本参数，避免新版页面继续使用旧脚本缓存。已打开的旧页面可通过带新版本参数的根入口进入新版。
 
 ## 保留的旧版
 
