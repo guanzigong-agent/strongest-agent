@@ -14,7 +14,7 @@ const leaderboard = createLeaderboard(() => {
   const run=scores.current();return !run?null:{id:run.id,difficultyId:run.config.difficultyId};
 },SCORE_API,()=>({rulesVersion:RULES_VERSION,rosterVersion:data.databaseSha256}));
 const esc = x => String(x ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const money = n => n == null ? '待核实' : n >= 1e6 ? '$' + (n / 1e6).toFixed(2) + 'M' : '$' + (n / 1e3).toFixed(0) + 'K';
+const money = n => n == null ? '待确认' : n >= 1e6 ? '$' + (n / 1e6).toFixed(2) + 'M' : '$' + (n / 1e3).toFixed(0) + 'K';
 const signed = n => (n < 0 ? '−' : '+') + money(Math.abs(n));
 const percent = n => (n < 0 ? '−' : '+') + Math.abs(n * 100).toFixed(1) + '%';
 const tone = n => n < 0 ? 'down' : 'up';
@@ -53,7 +53,7 @@ function playerHeader(p) {
 function setup() {
   const difficulty = DIFFICULTIES.find(d => d.id === selectedDifficulty);
   selectedTeam ??= data.teams.find(t => t.abbr === 'ATL').id;
-  root.innerHTML = `<section class="setup"><div><span class="eyebrow">BUY LOW. FIND YOUR NEXT DEAL.</span><h1>下一站，<br>你的球员值多少？</h1><p class="lead">选好你的启动资金，走访30支球队。买入、持有、转卖，在每天变化的报价里寻找机会。</p><div class="rule-pills"><span>最多持有 ${CAPACITY} 人</span><span>移动耗时 1 天</span><span>第 30 天结算</span></div></div><div class="setup-card"><span class="eyebrow">CURRENT ROSTER / 2026–27</span><h2>选好起点，开始经营。</h2><div class="field-label" id="difficulty-label">游戏难度 · 初始资金</div><div class="difficulty-options" role="group" aria-labelledby="difficulty-label">${DIFFICULTIES.map(d => `<button type="button" data-difficulty="${d.id}" aria-pressed="${d.id === selectedDifficulty}" class="difficulty-option ${d.id === selectedDifficulty ? 'selected' : ''}"><span>${d.name}</span><strong>${d.label.replace('万美元','万')}</strong><small>美元</small></button>`).join('')}</div><p class="difficulty-note">${difficulty.note} · 三档均有${CAPACITY}个背包栏，行情规则一致。</p><label for="nickname">你的游戏名字（必填）</label><input id="nickname" class="nickname-input" maxlength="12" required aria-describedby="nickname-error" placeholder="起个1～12字的游戏名字" value="${esc(nickname)}"><p id="nickname-error" class="score-name-error" role="alert" hidden></p><p class="nickname-note">名字会随本局成绩显示在公开排行榜中。</p>${scores.issue()?`<div class="warning" role="alert">${esc(scores.issue())}<button data-recover-save>保留备份并重新开局</button></div>`:""}<label for="start-team">开局球队</label><select id="start-team">${data.teams.map(t => `<option value="${esc(t.id)}" ${t.id === selectedTeam ? 'selected' : ''}>${esc(t.name)} · ${esc(t.abbr)}</option>`).join('')}</select><div class="sample-line"><span>初始现金</span><strong id="initial-cash">$${difficulty.cash.toLocaleString('en-US')}</strong><span>模拟报价区间</span><strong>工资基准的 30%～250%</strong><small>工资是起点，市场报价每天变化。</small></div><button class="primary wide" data-start>${difficulty.name}难度 · 开始试玩 →</button><p class="small-note">30队 · 620名球员 · 616名可确定本季基本工资。戴维斯已在奇才名单。行情为游戏模拟，报价不代表真实估值。</p></div></section>`;
+  root.innerHTML = `<section class="setup"><div><span class="eyebrow">BUY LOW. FIND YOUR NEXT DEAL.</span><h1>下一站，<br>你的球员值多少？</h1><p class="lead">选好你的启动资金，走访30支球队。买入、持有、转卖，在每天变化的报价里寻找机会。</p><div class="rule-pills"><span>最多持有 ${CAPACITY} 人</span><span>移动耗时 1 天</span><span>第 30 天结算</span></div></div><div class="setup-card"><span class="eyebrow">CURRENT ROSTER / 2026–27</span><h2>选好起点，开始经营。</h2><div class="field-label" id="difficulty-label">游戏难度 · 初始资金</div><div class="difficulty-options" role="group" aria-labelledby="difficulty-label">${DIFFICULTIES.map(d => `<button type="button" data-difficulty="${d.id}" aria-pressed="${d.id === selectedDifficulty}" class="difficulty-option ${d.id === selectedDifficulty ? 'selected' : ''}"><span>${d.name}</span><strong>${d.label.replace('万美元','万')}</strong><small>美元</small></button>`).join('')}</div><p class="difficulty-note">${difficulty.note} · 三档均有${CAPACITY}个背包栏，行情规则一致。</p><label for="nickname">你的游戏名字（必填）</label><input id="nickname" class="nickname-input" maxlength="12" required aria-describedby="nickname-error" placeholder="起个1～12字的游戏名字" value="${esc(nickname)}"><p id="nickname-error" class="score-name-error" role="alert" hidden></p><p class="nickname-note">名字会随本局成绩显示在公开排行榜中。</p>${scores.issue()?`<div class="warning" role="alert">${esc(scores.issue())}<button data-recover-save>保留备份并重新开局</button></div>`:""}<label for="start-team">开局球队</label><select id="start-team">${data.teams.map(t => `<option value="${esc(t.id)}" ${t.id === selectedTeam ? 'selected' : ''}>${esc(t.name)} · ${esc(t.abbr)}</option>`).join('')}</select><div class="sample-line"><span>初始现金</span><strong id="initial-cash">$${difficulty.cash.toLocaleString('en-US')}</strong><span>模拟报价区间</span><strong>工资基准的 30%～250%</strong><small>工资是起点，市场报价每天变化。</small></div><button class="primary wide" data-start>${difficulty.name}难度 · 开始经营 →</button><p class="small-note">游戏中的球员报价为模拟行情，不代表真实交易价值。</p></div></section>`;
 }
 function header() {
   const team = teamById(game.teamId), profit = totalLocal() - game.initialCash;
@@ -65,8 +65,8 @@ function card(p) {
   const previous = game.day > 1 ? quote(p, game.teamId, game.day - 1) : null;
   const change = previous ? (price - previous) / previous : null;
   const disabled = price == null || game.cash < price || game.holdings.length >= CAPACITY;
-  const reason = price == null ? '工资待核实' : game.holdings.length >= CAPACITY ? '仓库已满' : game.cash < price ? '现金不足' : '买入球员';
-  return `<article class="card" data-player-card="${esc(p.id)}">${playerHeader(p)}<div class="salary-row"><span>本季基本工资</span><span>${money(p.salaryUsd)}</span></div><div class="quote-row"><strong>${money(price)}</strong>${change == null ? '<span class="change muted">开局报价</span>' : `<span class="change ${tone(change)}">${percent(change)}</span>`}</div><p class="quote-caption">${price == null ? '当前合同工资未确认，暂不可交易' : change == null ? '今日当地买入价 · 模拟行情' : '今日当地买入价 · 较昨日当地报价'}</p>${ratio == null ? '<div class="ratio">保留官方名单，等待价格核实</div>' : `<div class="ratio"><span>工资 ${ratio.toFixed(2)} 倍</span><div class="track"><i style="left:${(ratio - .3) / 2.2 * 100}%"></i></div></div>`}<div class="buy-row"><span>买卖不消耗天数</span><button data-buy="${esc(p.id)}" ${disabled ? 'disabled' : 'class="primary"'}>${reason}</button></div></article>`;
+  const reason = price == null ? '暂无报价' : game.holdings.length >= CAPACITY ? '仓库已满' : game.cash < price ? '现金不足' : '买入球员';
+  return `<article class="card" data-player-card="${esc(p.id)}">${playerHeader(p)}<div class="salary-row"><span>本季基本工资</span><span>${money(p.salaryUsd)}</span></div><div class="quote-row"><strong>${money(price)}</strong>${change == null ? '<span class="change muted">开局报价</span>' : `<span class="change ${tone(change)}">${percent(change)}</span>`}</div><p class="quote-caption">${price == null ? '当前合同工资未确认，暂不可交易' : change == null ? '今日当地买入价 · 模拟行情' : '今日当地买入价 · 较昨日当地报价'}</p>${ratio == null ? '<div class="ratio">暂无可用报价</div>' : `<div class="ratio"><span>工资 ${ratio.toFixed(2)} 倍</span><div class="track"><i style="left:${(ratio - .3) / 2.2 * 100}%"></i></div></div>`}<div class="buy-row"><span>买卖不消耗天数</span><button data-buy="${esc(p.id)}" ${disabled ? 'disabled' : 'class="primary"'}>${reason}</button></div></article>`;
 }
 function market() {
   let players = data.players.filter(p => game.owners[p.id] === game.teamId && p.name.toLowerCase().includes(search.toLowerCase()) && (filter === 'ALL' || bucket(p) === filter));
@@ -95,13 +95,13 @@ function result() {
   const inventory = game.holdings.reduce((n, h) => n + Math.round(byId(h.id).salaryUsd * game.daily[game.day].factors[h.id]), 0);
   const assets = game.cash + inventory, profit = assets - game.initialCash;
   const difficulty = DIFFICULTIES.find(d => d.id === game.difficultyId);
-  return `<section class="result"><span class="eyebrow">ROUND COMPLETE</span><h1>这一局，你的眼光值多少？</h1><p>${esc(game.nickname)} · ${difficulty.name}难度 · 初始${money(game.initialCash)} · 第${game.day}天结束</p><div class="big">${money(assets)}</div><strong id="result-profit" class="${tone(profit)}">总收益 ${signed(profit)} · ${percent(profit / game.initialCash)}</strong><div class="stats"><div class="stat"><label>剩余现金</label><strong>${money(game.cash)}</strong></div><div class="stat"><label>持仓参考价值</label><strong>${money(inventory)}</strong></div><div class="stat"><label>已实现盈亏</label><strong class="${tone(game.realized)}">${signed(game.realized)}</strong></div><div class="stat"><label>交易次数</label><strong>${game.transactions}</strong></div></div><p>持仓按当日统一模拟行情计价，结算不含球队需求溢价。<br>每局结算记录单独保留，轻松、标准、挑战分别排行。</p>${syncStatus(true)}<button class="result-board-button leaderboard-link" data-open-board>查看本局排行榜 →</button><p class="result-board-note">成绩只进入本局所选难度，结束后继续保留。</p><button class="primary" data-restart>重新试玩 →</button></section>`;
+  return `<section class="result"><span class="eyebrow">ROUND COMPLETE</span><h1>这一局，你的眼光值多少？</h1><p>${esc(game.nickname)} · ${difficulty.name}难度 · 初始${money(game.initialCash)} · 第${game.day}天结束</p><div class="big">${money(assets)}</div><strong id="result-profit" class="${tone(profit)}">总收益 ${signed(profit)} · ${percent(profit / game.initialCash)}</strong><div class="stats"><div class="stat"><label>剩余现金</label><strong>${money(game.cash)}</strong></div><div class="stat"><label>持仓参考价值</label><strong>${money(inventory)}</strong></div><div class="stat"><label>已实现盈亏</label><strong class="${tone(game.realized)}">${signed(game.realized)}</strong></div><div class="stat"><label>交易次数</label><strong>${game.transactions}</strong></div></div><p>持仓按当日统一模拟行情计价，结算不含球队需求溢价。<br>每局结算记录单独保留，轻松、标准、挑战分别排行。</p>${syncStatus(true)}<button class="result-board-button leaderboard-link" data-open-board>查看本局排行榜 →</button><p class="result-board-note">成绩只进入本局所选难度，结束后继续保留。</p><button class="primary" data-restart>再开一局 →</button></section>`;
 }
 function render() {
   leaderboard.update();
   if (!game) return setup();
   if (game.ended) {root.innerHTML = result(); return;}
-  root.innerHTML = header() + `<div id="game-sync">${syncStatus(false)}</div>` + (tab === 'market' ? market() : tab === 'warehouse' ? warehouse() : map()) + `<div class="endbar"><p>每日模拟行情 · 报价范围为本季基本工资的30%～250%<br>进度自动保存在本机，成绩同步到所选难度榜</p><div><button data-restart>重新试玩</button> <button data-finish>${game.day === 30 ? '结算本局' : '提前结算'}</button></div></div>`;
+  root.innerHTML = header() + `<div id="game-sync">${syncStatus(false)}</div>` + (tab === 'market' ? market() : tab === 'warehouse' ? warehouse() : map()) + `<div class="endbar"><p>每日模拟行情 · 报价范围为本季基本工资的30%～250%<br>进度自动保存在本机，成绩同步到所选难度榜</p><div><button data-restart>重新开局</button> <button data-finish>${game.day === 30 ? '结算本局' : '提前结算'}</button></div></div>`;
 }
 root.addEventListener('click', event => {
   try {
@@ -165,7 +165,7 @@ document.querySelector('#open-leaderboard').addEventListener('click', () => lead
 document.querySelectorAll('[data-close]').forEach(button => button.addEventListener('click', () => document.querySelector('#help-dialog').close()));
 try {
   const response = await fetch(new URL('./roster.json', import.meta.url));
-  if (!response.ok) throw new Error(`名单读取失败：HTTP ${response.status}`);
+  if (!response.ok) throw new Error('球员名单加载失败，请刷新重试');
   data = await response.json();
   data.teams.sort((a, b) => a.englishName.localeCompare(b.englishName, 'en'));
   await scores.ready;
@@ -178,5 +178,5 @@ try {
   window.addEventListener('online',()=>scores.flush());
   setInterval(()=>{if(!document.hidden)scores.flush();},20000);
 } catch (error) {
-  root.innerHTML = `<div class="empty"><h3>游戏暂未打开</h3><p>${esc(error.message)}</p></div>`;
+  root.innerHTML = `<div class="empty"><h3>游戏暂时无法打开</h3><p>请检查网络连接后刷新重试。</p></div>`;
 }

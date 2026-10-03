@@ -30,7 +30,7 @@ export function createScoreClient(api,{onChange=()=>{},storage}={}){
  const current=()=>state.runs.find(r=>r.id===state.currentId)??null;
  function patch(id,fields){persist({...state,runs:state.runs.map(r=>r.id===id?{...r,...fields}:r)});onChange();}
  async function call(path,run,method,body){
-  if(!api)throw Error('线上成绩服务尚未配置');
+  if(!api)throw Error('排行榜暂时不可用，请稍后重试');
   const response=await fetch(api+path,{method,headers:{'Content-Type':'application/json',Authorization:'Bearer '+run.key,'X-Rules-Version':run.rulesVersion,'X-Roster-Version':run.rosterVersion},body:JSON.stringify(body),signal:AbortSignal.timeout(12000)});
   const result=await response.json();if(!response.ok)throw Error(result.error??'成绩同步失败');return result;
  }
@@ -50,7 +50,7 @@ export function createScoreClient(api,{onChange=()=>{},storage}={}){
       run=state.runs.find(r=>r.id===id);
      }while(run.syncedCount<run.events.length);
      patch(id,{syncing:false,error:null});
-    }catch(error){try{patch(id,{syncing:false,error:storageError??(error.name==='TypeError'?'网络连接失败':error.message)});}catch{}onChange();}
+    }catch(error){try{patch(id,{syncing:false,error:storageError??(error.name==='TypeError'?'网络连接失败':['TimeoutError','AbortError'].includes(error.name)?'连接超时，请重试':error.message)});}catch{}onChange();}
    }
   })().finally(()=>{running=null;});return running;
  }

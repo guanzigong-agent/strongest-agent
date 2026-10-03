@@ -13,14 +13,14 @@ export function createLeaderboard(getCurrentRun,api,getVersions){
  async function refresh(){
   const id=++requestId,difficulty=selected;status='loading';render();
   try{
-   if(!api)throw Error('线上成绩服务尚未配置');
+   if(!api)throw Error('排行榜暂时不可用，请稍后重试');
    const me=getCurrentRun(),query=new URLSearchParams({difficulty});if(me)query.set('own',me.id);
    const response=await fetch(api+'/leaderboard?'+query,{signal:AbortSignal.timeout(10000)});
    const result=await response.json();if(!response.ok)throw Error(result.error??'读取失败');
    const versions=getVersions();
    if(result.rulesVersion!==versions.rulesVersion||result.rosterVersion!==versions.rosterVersion)throw Error('榜单规则或名单已更新，请刷新游戏后查看');
    if(id!==requestId)return;board=result;status='ready';
-  }catch(e){if(id!==requestId)return;status='error';error=e.name==='TypeError'?'连接失败':e.message;}
+  }catch(e){if(id!==requestId)return;status='error';error=e.name==='TypeError'?'连接失败':['TimeoutError','AbortError'].includes(e.name)?'连接超时，请重试':e.message;}
   if(dialog.open)render();
  }
  dialog.addEventListener('click',e=>{
