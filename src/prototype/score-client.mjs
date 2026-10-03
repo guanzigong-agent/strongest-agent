@@ -1,4 +1,5 @@
 import {RULES_VERSION} from './rules.mjs';
+import {requestJson} from './network.mjs';
 const STORAGE_KEY='nba-agent-runs-v1';
 export function createScoreClient(api,{onChange=()=>{},storage}={}){
  let state={currentId:null,runs:[]},storageError=null,running=null,lastRaw=null,corrupt=false,readOnly=false;
@@ -31,8 +32,8 @@ export function createScoreClient(api,{onChange=()=>{},storage}={}){
  function patch(id,fields){persist({...state,runs:state.runs.map(r=>r.id===id?{...r,...fields}:r)});onChange();}
  async function call(path,run,method,body){
   if(!api)throw Error('排行榜暂时不可用，请稍后重试');
-  const response=await fetch(api+path,{method,headers:{'Content-Type':'application/json',Authorization:'Bearer '+run.key,'X-Rules-Version':run.rulesVersion,'X-Roster-Version':run.rosterVersion},body:JSON.stringify(body),signal:AbortSignal.timeout(12000)});
-  const result=await response.json();if(!response.ok)throw Error(result.error??'成绩同步失败');return result;
+  const {response,body:result}=await requestJson(api+path,{method,headers:{'Content-Type':'application/json',Authorization:'Bearer '+run.key,'X-Rules-Version':run.rulesVersion,'X-Roster-Version':run.rosterVersion},body:JSON.stringify(body)},12000);
+  if(!response.ok)throw Error(result.error??'成绩同步失败');return result;
  }
  function flush(){
   if(readOnly||corrupt)return Promise.resolve();
@@ -44,7 +45,7 @@ export function createScoreClient(api,{onChange=()=>{},storage}={}){
      let run=state.runs.find(r=>r.id===id);patch(id,{syncing:true,error:null});
      if(!run.created){await call('/runs/'+id,run,'PUT',run.config);patch(id,{created:true});}
      do{
-      run=state.runs.find(r=>r.id===id);const events=structuredClone(run.events);
+      run=state.runs.find(r=>r.id===id);const events=JSON.parse(JSON.stringify(run.events));
       const result=await call('/runs/'+id+'/sync',run,'POST',{events});
       patch(id,{syncedCount:events.length,ack:result.run});
       run=state.runs.find(r=>r.id===id);

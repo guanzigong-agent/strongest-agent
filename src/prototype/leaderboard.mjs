@@ -1,3 +1,4 @@
+import {requestJson} from './network.mjs';
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money=n=>'$'+(n/1e6).toFixed(2)+'M';
 const tiers=[['easy','轻松',30e6],['standard','标准',10e6],['challenge','挑战',5e6]];
@@ -15,8 +16,8 @@ export function createLeaderboard(getCurrentRun,api,getVersions){
   try{
    if(!api)throw Error('排行榜暂时不可用，请稍后重试');
    const me=getCurrentRun(),query=new URLSearchParams({difficulty});if(me)query.set('own',me.id);
-   const response=await fetch(api+'/leaderboard?'+query,{signal:AbortSignal.timeout(10000)});
-   const result=await response.json();if(!response.ok)throw Error(result.error??'读取失败');
+   const {response,body:result}=await requestJson(api+'/leaderboard?'+query,{},10000);
+   if(!response.ok)throw Error(result.error??'读取失败');
    const versions=getVersions();
    if(result.rulesVersion!==versions.rulesVersion||result.rosterVersion!==versions.rosterVersion)throw Error('榜单规则或名单已更新，请刷新游戏后查看');
    if(id!==requestId)return;board=result;status='ready';
