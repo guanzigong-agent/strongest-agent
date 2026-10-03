@@ -32,4 +32,12 @@
 - `scripts/prototype-smoke.mjs`：39项检查，覆盖三档资金、15人上限、交易循环、报价刷新、历史报价隔离、第30天边界、375px与1280px布局。
 - `scripts/leaderboard-smoke.mjs`：26项检查，覆盖三难度隔离、本人资产随买卖／移动刷新、昵称、排名、结算退出、演示断线重试和布局。
 - 排行榜没有云端服务；当前测试验证本页逻辑与演示交互，不声称验证真实多人同步。
-- 公开包的仓库子路径与上线检查使用 `scripts/site-smoke.mjs`，具体结果在发布后补录。
+- `scripts/site-smoke.mjs`：本地发布包与实际公网网址各17项检查通过；根入口跳转、模块与名单资源、标准档资金、15人容量、买入—移动—卖出、榜单、375px和1280px布局均正常，脚本异常和资源失败为0。
+
+## 实际发布结果
+
+- 2026-10-03已创建公开仓库：[guanzigong-agent/strongest-agent](https://github.com/guanzigong-agent/strongest-agent)，默认分支 `develop`。
+- Pages使用Actions发布，部署版本 `d0e1845c4af65498406a4383305f046726808445`。
+- [首次部署流水线](https://github.com/guanzigong-agent/strongest-agent/actions/runs/37116390036)成功；旧版测试与数据校验、当前公开包构建和Pages部署均成功。
+- [公网试玩](https://guanzigong-agent.github.io/strongest-agent/)已用无头浏览器实际检查，包含17项上线检查。
+- 排行榜仍为演示，刷新页面会重置当前局；这些限制已在网页及README说明。
