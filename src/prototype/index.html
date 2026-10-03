@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#11151c">
+  <title>最强nba人贩子 · 实时排行原型 M3</title>
+  <link rel="stylesheet" href="./prototype.css">
+  <link rel="stylesheet" href="./leaderboard.css">
+</head>
+<body>
+  <div class="shell">
+    <header class="brand"><a href="./index.html" class="logo"><span class="ball">◎</span><span>最强nba人贩子<small>THE AGENT / NBA</small></span></a><div class="brand-actions"><button id="open-leaderboard" class="subtle">排行榜</button><button id="help" class="subtle">玩法说明</button></div></header>
+    <div class="preview-label"><span class="status-dot"></span>实时排行原型 M3 <span>真实名单 · 行情与排行演示</span></div>
+    <main id="app"><div class="empty">正在读取当前阵容…</div></main>
+    <footer>阵容快照 2026-10-03 · 2026–27 季前赛名单 <span>演示进度仅保留在本页</span></footer>
+  </div>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <dialog id="help-dialog"><button data-close class="close" aria-label="关闭说明">×</button><span class="eyebrow">HOW TO PLAY</span><h2>带着球员，寻找下一位买家。</h2><p>初始资金按三档难度选择，最多持有15名球员。买卖不耗时间；前往另一支球队推进一天，第30天结束。</p><p>报价以2026–27基本工资为基准，可在30%～250%之间波动。这个原型用固定演示行情展示大涨大跌与球队价差，涨跌幅和需求参数仍待试玩调整。</p><p>移动后刷新当天报价，同一天报价固定。其他球队只能看上次到访的旧报价。真实名单与工资来自总控数据库，4名工资待核实球员保留名单、暂不可交易。</p><p>进行中资产榜分三个难度，按现金加持仓统一参考价值排序。买卖或移动后更新本页排名，其他玩家为模拟数据，未连接线上。</p><p>页面关闭或刷新将重置演示。本版不接入正式存档，也不编造真实新闻解释涨跌。</p><button data-close class="primary wide">开始寻找机会</button></dialog>
+  <script type="module" src="./prototype.mjs"></script>
+</body>
+</html>

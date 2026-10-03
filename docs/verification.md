@@ -1,6 +1,10 @@
-# 最强经纪人 v0.1 验证记录
+# 最强nba人贩子验证记录
 
 日期：2026-10-03。
+
+## 旧版历史回放
+
+以下18项单元／集成测试、合同解析及历史数据校验针对保留的旧版，不代表新的实时云端排行榜已实现。
 
 - `npm test`：18 项通过，0 项失败。
 - `python tests/test_salary_parser.py`：2 项通过，覆盖 Base Salary／Cap Hit 区分、后签合同与 DEAD CAP 排除。
@@ -19,6 +23,13 @@
 
 用户确认：公开仓库 `guanzigong-agent/strongest-agent`。
 
-本地实现与部署 workflow 已准备。GitHub connector 已识别对应账号，但目标仓库读取返回 404，当前 connector 无新建仓库工具；本机 GitHub CLI 登录返回 401，需要 `gh auth login`。尚未创建远程仓库、推送或启用 Pages，因此没有已验证的公网试玩网址。
+用户已确认M3前端并授权发布。原先普通沙箱中的CLI401已定位为Windows凭据访问限制；允许读取凭据后 `gh api user` 核验账号为 `guanzigong-agent`。
 
-公开部署资源仅游戏 HTML/CSS、src、data 与本数据说明；本地采集缓存、浏览器输出、执行台账、学习记录、私人上下文和凭据不发布。
+当前Pages包采用 `scripts/build-site.mjs` 的明确文件清单，只包含当前前端、紧凑名单、公开数据说明和根入口，共9个文件；不包含旧版、数据库原文件、采集缓存、浏览器输出、执行台账、私人上下文或凭据。
+
+## 当前M3前端
+
+- `scripts/prototype-smoke.mjs`：39项检查，覆盖三档资金、15人上限、交易循环、报价刷新、历史报价隔离、第30天边界、375px与1280px布局。
+- `scripts/leaderboard-smoke.mjs`：26项检查，覆盖三难度隔离、本人资产随买卖／移动刷新、昵称、排名、结算退出、演示断线重试和布局。
+- 排行榜没有云端服务；当前测试验证本页逻辑与演示交互，不声称验证真实多人同步。
+- 公开包的仓库子路径与上线检查使用 `scripts/site-smoke.mjs`，具体结果在发布后补录。

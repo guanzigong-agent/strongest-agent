@@ -1,4 +1,4 @@
-# 最强经纪人 Implementation Plan
+# 最强nba人贩子 Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -66,7 +66,7 @@
 - [ ] 写存档失败测试：坏 JSON、版本不符、非法负余额／重复持仓拒绝；quota 异常返回 warning、不吞掉当前状态。
 - [ ] 运行 `node --test tests/storage.test.mjs`，预期失败。
 - [ ] 实现存档验证；保存失败允许会话继续并明确提示。坏档不静默覆盖，重开前明确确认。重开恢复 1500 万和原始归属。
-- [ ] 实现「最强经纪人」手机布局：顶部资产／天数，市场、仓库、地图、新闻；姓名及位置过滤；当地交易显示成本和盈亏，地图标注未访问及历史日期；新闻有来源、日期且不出现预测。开局默认湖人，可换球队。
+- [ ] 实现「最强nba人贩子」手机布局：顶部资产／天数，市场、仓库、地图、新闻；姓名及位置过滤；当地交易显示成本和盈亏，地图标注未访问及历史日期；新闻有来源、日期且不出现预测。开局默认湖人，可换球队。
 - [ ] 运行所有测试；用 375px 及桌面视口检查无横向溢出、点击区域可用、新闻链接可访问；通过浏览器自动化或结构检查验证陈旧按钮不会重复交易，记录实际验证能力。
 - [ ] 提交页面与存档。
 

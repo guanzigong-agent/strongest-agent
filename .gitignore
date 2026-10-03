@@ -5,6 +5,8 @@ node_modules/
 *.log
 local-save*.json
 output/playwright/
+output/site/
+docs/*-checkpoint.json
 docs/execution-ledger.md
 __pycache__/
 *.pyc

@@ -1,6 +1,6 @@
 import {createRequire} from 'node:module';import {mkdir,writeFile} from 'node:fs/promises';import {createServer} from './serve.mjs';
 const require=createRequire(import.meta.url);const {chromium}=require(process.env.PLAYWRIGHT_MODULE??'playwright');
-const server=createServer();await new Promise(r=>server.listen(0,'127.0.0.1',r));const url='http://127.0.0.1:'+server.address().port+'/test-repo/';
+const server=createServer();await new Promise(r=>server.listen(0,'127.0.0.1',r));const url='http://127.0.0.1:'+server.address().port+'/test-repo/legacy.html';
 const browser=await chromium.launch({headless:true,...(process.env.TEST_BROWSER?{executablePath:process.env.TEST_BROWSER}:{})});const errors=[];const context=await browser.newContext({viewport:{width:375,height:812},deviceScaleFactor:1});const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));page.on('dialog',d=>d.accept());await mkdir('output/playwright',{recursive:true});
 try{
  await page.goto(url);await page.locator('[data-start]').waitFor();await page.screenshot({path:'output/playwright/mobile-start.png',fullPage:true});
