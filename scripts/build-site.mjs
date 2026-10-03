@@ -5,6 +5,7 @@ import {fileURLToPath} from 'node:url';
 const root=fileURLToPath(new URL('../',import.meta.url));
 export const publicFiles=[
  'index.html',
+ 'connection-check.html',
  'src/prototype/index.html',
  'src/prototype/prototype.css',
  'src/prototype/prototype.mjs',

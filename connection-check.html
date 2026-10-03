@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>手机连接检测 · 最强nba人贩子</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#11151c;color:#f4f5f7;font:16px/1.65 system-ui,sans-serif}main{max-width:660px;margin:auto;padding:28px 20px}h1{font-size:28px;margin:10px 0}p{color:#aeb6c4}section{background:#1c222c;border:1px solid #39414e;border-radius:16px;padding:20px;margin:18px 0}.row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 0;border-bottom:1px solid #39414e}.row:last-child{border:0}strong{font-size:18px}.ok{color:#78dfad}.bad{color:#ffa574}button,a{display:inline-block;color:#10151c;background:#ff8b40;border:0;border-radius:12px;padding:12px 18px;font:inherit;font-weight:700;text-decoration:none;margin:4px 8px 4px 0}button:disabled{opacity:.5}a{background:#dce2ec}pre{white-space:pre-wrap;overflow-wrap:anywhere;font:13px/1.6 monospace;color:#c9d1dc}small{color:#8993a3}details{margin-top:20px}#address{overflow-wrap:anywhere;font-size:12px}#summary{color:#f4f5f7}
+</style>
+</head>
+<body>
+<main>
+<small>最强nba人贩子 / 连接排查</small>
+<h1>手机连接检测</h1>
+<p>分别检测游戏网页和排行榜的连接。此页只读检测，保留本局存档。</p>
+<section aria-live="polite">
+ <div class="row"><span>游戏网页</span><strong id="game">正在检测…</strong></div>
+ <div class="row"><span>排行榜连接</span><strong id="score">正在检测…</strong></div>
+</section>
+<p id="summary">请等待检测结果，通常在10秒内完成。</p>
+<button id="retry" disabled>重新检测</button><button id="copy" disabled>复制检测结果</button>
+<a href="./index.html">返回游戏</a>
+<details><summary>检测详情（用于反馈）</summary><pre id="details"></pre></details>
+<p id="address"></p>
+</main>
+<script>
+(function(){
+ var api='https://strongest-agent-rankings.guanzigong.chatgpt.site/api/health',report;
+ function show(id,text,ok){var node=document.getElementById(id);node.textContent=text;node.className=ok===true?'ok':ok===false?'bad':'';}
+ async function read(url){
+  var controller=typeof AbortController==='function'?new AbortController():null,timedOut=false;
+  var timer,deadline=new Promise(function(_resolve,reject){timer=setTimeout(function(){timedOut=true;if(controller)controller.abort();reject(new Error('连接超时'));},10000);});
+  try{return await Promise.race([(async function(){
+   var response=await fetch(url,{cache:'no-store',signal:controller?controller.signal:undefined});var text=await response.text();
+   return{status:response.status,redirected:response.redirected,host:new URL(response.url).host,text:text};
+  })(),deadline]);}catch(error){return{error:timedOut?'连接超时':String(error.message)};}finally{clearTimeout(timer);}
+ }
+ async function run(){
+  document.getElementById('retry').disabled=true;document.getElementById('copy').disabled=true;
+  show('game','正在检测…');show('score','正在检测…');show('summary','请等待检测结果，通常在10秒内完成。');
+  report={time:new Date().toISOString(),build:document.querySelector('meta[name="game-build"]')?.content||'local',origin:location.origin,browser:navigator.userAgent};
+  var results=await Promise.all([read(new URL('./index.html?connection-check='+Date.now(),location.href)),read(api)]);
+  var game=results[0],score=results[1],gameOk=game.status===200&&game.text.includes('最强nba人贩子'),scoreOk=false;
+  if(score.status===200)try{scoreOk=JSON.parse(score.text).ok===true;}catch(_error){}
+  report.game={ok:gameOk,status:game.status,error:game.error,redirected:game.redirected};
+  report.score={ok:scoreOk,status:score.status,error:score.error,redirected:score.redirected,host:score.host};
+  show('game',gameOk?'连接成功':game.error?'连接失败':'未能加载',gameOk);
+  show('score',scoreOk?'连接成功':score.error==='连接超时'?'连接超时':score.error?'连接失败':score.redirected?'出现跳转':'返回异常',scoreOk);
+  show('summary',scoreOk?'排行榜读取连接正常。请返回游戏重试提交；若仍失败，将检测结果发给维护者。':gameOk?'游戏网页可以打开，但当前环境未能连接排行榜。请把检测结果发给维护者。':'当前连接未通过，请把检测结果发给维护者。');
+  document.getElementById('details').textContent=JSON.stringify(report,null,2);
+  document.getElementById('retry').disabled=false;document.getElementById('copy').disabled=false;
+ }
+ document.getElementById('retry').onclick=run;
+ document.getElementById('copy').onclick=async function(){
+  var text=JSON.stringify(report,null,2);
+  try{await navigator.clipboard.writeText(text);this.textContent='已复制';}
+  catch(_error){document.querySelector('details').open=true;this.textContent='请复制下方检测详情';}
+ };
+ document.getElementById('address').textContent='检测页地址：'+location.origin+location.pathname;
+ run();
+})();
+</script>
+</body>
+</html>
