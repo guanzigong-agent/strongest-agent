@@ -84,7 +84,7 @@ function playerHeader(p) {
 }
 function setup() {
   const difficulty = DIFFICULTIES.find(d => d.id === selectedDifficulty);
-  selectedTeam ??= data.teams.find(t => t.abbr === 'SAS').id;
+  selectedTeam ??= data.teams.find(t => t.abbr === 'ATL').id;
   root.innerHTML = `<section class="setup"><div><span class="eyebrow">BUY LOW. FIND YOUR NEXT DEAL.</span><h1>下一站，<br>你的球员值多少？</h1><p class="lead">选好你的启动资金，走访30支球队。买入、持有、转卖，在每天变化的报价里寻找机会。</p><div class="rule-pills"><span>最多持有 ${CAPACITY} 人</span><span>移动耗时 1 天</span><span>第 30 天结算</span></div></div><div class="setup-card"><span class="eyebrow">CURRENT ROSTER / 2026–27</span><h2>选好起点，开始经营。</h2><div class="field-label" id="difficulty-label">游戏难度 · 初始资金</div><div class="difficulty-options" role="group" aria-labelledby="difficulty-label">${DIFFICULTIES.map(d => `<button type="button" data-difficulty="${d.id}" aria-pressed="${d.id === selectedDifficulty}" class="difficulty-option ${d.id === selectedDifficulty ? 'selected' : ''}"><span>${d.name}</span><strong>${d.label.replace('万美元','万')}</strong><small>美元</small></button>`).join('')}</div><p class="difficulty-note">${difficulty.note} · 三档均有${CAPACITY}个背包栏，行情规则一致。</p><label for="nickname">玩家昵称（可选）</label><input id="nickname" class="nickname-input" maxlength="12" placeholder="填写你的排行榜昵称" value="${esc(nickname)}"><p class="nickname-note">当前原型仅在本页展示，未上传昵称或成绩。</p><label for="start-team">开局球队</label><select id="start-team">${data.teams.map(t => `<option value="${esc(t.id)}" ${t.id === selectedTeam ? 'selected' : ''}>${esc(t.name)} · ${esc(t.abbr)}</option>`).join('')}</select><div class="sample-line"><span>初始现金</span><strong id="initial-cash">$${difficulty.cash.toLocaleString('en-US')}</strong><span>模拟报价区间</span><strong>工资基准的 30%～250%</strong><small>工资是起点，市场报价每天变化。</small></div><button class="primary wide" data-start>${difficulty.name}难度 · 开始试玩 →</button><p class="small-note">30队 · 620名球员 · 616名可确定本季基本工资。戴维斯已在奇才名单。本轮评审行情变化与交易反馈，演示报价不代表真实估值。</p></div></section>`;
 }
 function header() {
@@ -192,7 +192,9 @@ document.querySelectorAll('[data-close]').forEach(button => button.addEventListe
 try {
   const response = await fetch(new URL('./roster.json', import.meta.url));
   if (!response.ok) throw new Error(`名单读取失败：HTTP ${response.status}`);
-  data = await response.json(); setup();
+  data = await response.json();
+  data.teams.sort((a, b) => a.englishName.localeCompare(b.englishName, 'en'));
+  setup();
 } catch (error) {
   root.innerHTML = `<div class="empty"><h3>原型暂未打开</h3><p>${esc(error.message)}</p></div>`;
 }
