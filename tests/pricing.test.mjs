@@ -1,0 +1,3 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {quote,referenceValue} from '../src/pricing.mjs';import {fixture} from './fixture.mjs';
+test('同日稳定、无未来泄露、真实表现改变价格',()=>{const s=fixture(),g={day:1};assert.equal(referenceValue(s,g,'0'),1000000);assert.equal(quote(s,g,'a','0'),quote(s,g,'a','0'));assert.ok(referenceValue(s,{day:2},'0')>1000000);});
+test('报价不超过年薪±30%，极端新闻按±22%裁剪',()=>{const s=fixture();for(const sign of [1,-1]){s.dailyFacts.push({date:'2026-01-01',playerId:'0',type:'news',payload:{impact:100*sign}});for(const team of s.teams){const price=quote(s,{day:1},team.id,'0');assert.ok(price>=700000&&price<=1300000);}assert.ok(referenceValue(s,{day:1},'0')>=780000&&referenceValue(s,{day:1},'0')<=1220000);}});
